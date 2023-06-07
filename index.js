@@ -27,6 +27,13 @@ async function run() {
 
     const userCollection=client.db("playzone").collection("users");
 
+
+    //get all of the users
+    app.get("/users",async(req,res)=>{
+        const result =await userCollection.find().toArray();
+        res.send(result);
+    })
+    
     //store user info in the database
     app.put("/users",async (req,res)=>{
         const userInfo=req.body;
