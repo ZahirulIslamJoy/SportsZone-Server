@@ -25,7 +25,20 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
 
-    await client.db("admin").command({ ping: 1 });
+    const userCollection=client.db("playzone").collection("users");
+
+    //store user info in the database
+    app.put("/users",async (req,res)=>{
+        const userInfo=req.body;
+        const query={email : userInfo.email}
+        const options = { upsert: true };
+        const updateDoc = {
+        $set: userInfo
+        };
+        const result=await userCollection.updateOne(query,updateDoc,options);
+        res.send(result);
+    })
+      
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
