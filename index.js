@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -33,7 +33,7 @@ async function run() {
         const result =await userCollection.find().toArray();
         res.send(result);
     })
-    
+
     //store user info in the database
     app.put("/users",async (req,res)=>{
         const userInfo=req.body;
@@ -45,6 +45,31 @@ async function run() {
         const result=await userCollection.updateOne(query,updateDoc,options);
         res.send(result);
     })
+
+    //update role of the user admin or instructors
+    app.patch("/users/:id",async(req,res)=>{
+        const data=req.body;
+        const updatedRole=data.role;
+        const id=req.params.id;
+        const query={_id : new ObjectId(id)}
+        const updateDoc = {
+            $set: {
+                role:updatedRole
+            }
+        };
+        const result=await userCollection.updateOne(query,updateDoc);
+        res.send(result);
+    })
+
+    //checking a user admin or not
+    app.get('/users/admin/:email', async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email }
+        const user = await userCollection.findOne(query);
+        const result = { admin: user?.role == 'admin' }
+        res.send(result);
+      })
+  
       
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
