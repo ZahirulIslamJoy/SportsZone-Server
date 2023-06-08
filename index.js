@@ -45,6 +45,8 @@ async function run() {
 
     const userCollection=client.db("playzone").collection("users");
 
+    const classCollection=client.db("playzone").collection("addedClasses");
+
     //middlewares
     //admin verify
     const verifyAdmin=async(req,res,next)=>{
@@ -82,6 +84,7 @@ async function run() {
 
     //get all of the users //jwt //admin verify //complete verify 
     app.get("/users", verifyJWT,verifyAdmin,async(req,res)=>{
+      console.log("come")
         const email=req.query.email;
         const jwtEmail=req.decoded.email;
       if (!email) {
@@ -158,6 +161,25 @@ async function run() {
           })
           res.send({token})
       })
+
+
+      //sending data of addaded class of an instructors //verifyJwt //verify Instructors
+      app.post("/classes",verifyJWT,verifyInstructor,async(req,res)=>{
+          const classInfo=req.body;
+          const result=await classCollection.insertOne(classInfo);
+          res.send(result);
+      })
+
+      //getting classes for a instrucctor //verifyinstructor //verifyJwt
+      
+      app.get("/classes/:email",verifyJWT,verifyInstructor,async (req,res)=>{
+        const email=req.params.email;
+        const query={instructorEmail :email};
+        const result=await classCollection.find(query).toArray();
+        res.send(result);
+      } )
+
+
 
       
     console.log(
