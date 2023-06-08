@@ -13,7 +13,23 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-console.log(process.env.DB_USER)
+  const verifyJWT=(req,res,next)=>{
+    const authorization=req.headers.authorization;
+    if(!authorization){
+      return res.status(401).send({ error: true, message: "Unauthorized Access" });
+    }
+    const token=authorization.split(" ")[1]
+    jwt.verify(token,process.env.ACCESS_TOKEN,function (err,decoded){
+      if (err) {
+        return res.status(403).send({ error: true, message: "Unauthorized Access" });
+      }
+      req.decoded=decoded;
+      next();
+    })
+  }
+
+
+
 
 const uri =`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.tzxjncj.mongodb.net/?retryWrites=true&w=majority`
 const client = new MongoClient(uri, {
