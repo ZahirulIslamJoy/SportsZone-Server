@@ -45,9 +45,43 @@ async function run() {
 
     const userCollection=client.db("playzone").collection("users");
 
+    //middlewares
+    //admin verify
+    const verifyAdmin=async(req,res,next)=>{
+      const email=req.decoded.email;
+      const query={email:email};
+      const user= await userCollection.findOne(query);
+      if(user?.role != "admin"){
+        return req.status(401).send({ error: true, message: "forbidden access" });
+      }
+      next();
+    }
 
-    //get all of the users //jwt //admin verify
-    app.get("/users", verifyJWT,async(req,res)=>{
+    //Instructor  verify
+    const verifyInstructor=async(req,res,next)=>{
+      const email=req.decoded.email;
+      const query={email:email};
+      const user= await userCollection.findOne(query);
+      if(user?.role != "instructor"){
+        return req.status(401).send({ error: true, message: "forbidden access" });
+      }
+      next();
+    }
+
+     //student  verify
+     const verifyStudent=async(req,res,next)=>{
+      const email=req.decoded.email;
+      const query={email:email};
+      const user= await userCollection.findOne(query);
+      if(user?.role != "student"){
+        return req.status(401).send({ error: true, message: "forbidden access" });
+      }
+      next();
+    }
+
+
+    //get all of the users //jwt //admin verify //complete verify 
+    app.get("/users", verifyJWT,verifyAdmin,async(req,res)=>{
         const email=req.query.email;
         const jwtEmail=req.decoded.email;
       if (!email) {
@@ -59,6 +93,7 @@ async function run() {
         const result =await userCollection.find().toArray();
         res.send(result);
     })
+
     //store user info in the database //no verify needed
     app.put("/users",async (req,res)=>{
         const userInfo=req.body;
@@ -104,9 +139,9 @@ async function run() {
         res.send(result);
       })
 
-      //checking a user student or not 
-
-      app.get('/users/student/:email', async (req, res) => {
+      
+      //checking a user student or not //jwt verify
+         app.get('/users/student/:email', async (req, res) => {
         const email = req.params.email;
         const query = { email: email }
         const user = await userCollection.findOne(query);
