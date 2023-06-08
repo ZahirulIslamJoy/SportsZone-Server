@@ -23,6 +23,7 @@ app.get("/", (req, res) => {
       if (err) {
         return res.status(403).send({ error: true, message: "Unauthorized Access" });
       }
+      // console.log("the user is going to be verified")
       req.decoded=decoded;
       next();
     })
@@ -45,13 +46,20 @@ async function run() {
     const userCollection=client.db("playzone").collection("users");
 
 
-    //get all of the users
-    app.get("/users",async(req,res)=>{
+    //get all of the users //jwt //admin verify
+    app.get("/users", verifyJWT,async(req,res)=>{
+        const email=req.query.email;
+        const jwtEmail=req.decoded.email;
+      if (!email) {
+        return res.send([]);
+      }
+      if (jwtEmail !== email) {
+        return res.status(401).send({ error: true, message: "Forbidden Access" });
+      }
         const result =await userCollection.find().toArray();
         res.send(result);
     })
-
-    //store user info in the database
+    //store user info in the database //no verify needed
     app.put("/users",async (req,res)=>{
         const userInfo=req.body;
         const query={email : userInfo.email}
@@ -63,7 +71,7 @@ async function run() {
         res.send(result);
     })
 
-    //update role of the user admin or instructors
+    //update role of the user admin or instructors //jwt //admin verify
     app.patch("/users/:id",async(req,res)=>{
         const data=req.body;
         const updatedRole=data.role;
@@ -78,7 +86,7 @@ async function run() {
         res.send(result);
     })
 
-    //checking a user admin or not
+    //checking a user admin or not //jwt verify
     app.get('/users/admin/:email', async (req, res) => {
         const email = req.params.email;
         const query = { email: email }
@@ -87,7 +95,7 @@ async function run() {
         res.send(result);
       })
 
-      //checking a user instructor or not
+      //checking a user instructor or not //jwt verify
       app.get('/users/instructor/:email', async (req, res) => {
         const email = req.params.email;
         const query = { email: email }
@@ -95,6 +103,17 @@ async function run() {
         const result = { instructor: user?.role == 'instructor' }
         res.send(result);
       })
+
+      //checking a user student or not 
+
+      app.get('/users/student/:email', async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email }
+        const user = await userCollection.findOne(query);
+        const result = { student: user?.role == 'student' }
+        res.send(result);
+      })
+
 
       //post method of the jwt token
       app.post("/jwt",(req,res)=>{
