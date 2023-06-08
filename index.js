@@ -4,6 +4,7 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 const cors = require("cors");
+var jwt = require('jsonwebtoken');
 
 app.use(cors());
 app.use(express.json());
@@ -70,7 +71,7 @@ async function run() {
         res.send(result);
       })
 
-      //checking a user admin or not
+      //checking a user instructor or not
       app.get('/users/instructor/:email', async (req, res) => {
         const email = req.params.email;
         const query = { email: email }
@@ -79,7 +80,15 @@ async function run() {
         res.send(result);
       })
 
-  
+      //post method of the jwt token
+      app.post("/jwt",(req,res)=>{
+          const email=req.body;
+          const token = jwt.sign(email, process.env.ACCESS_TOKEN,{
+            expiresIn:"1h",
+          })
+          res.send({token})
+      })
+
       
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
