@@ -163,6 +163,16 @@ async function run() {
       })
 
 
+
+      //getting all the classes added by the instructor //verifyjwt //verifyAdmin
+      app.get("/allclasses",verifyJWT,verifyAdmin,async(req,res)=>{
+        const result =await classCollection.find().toArray();
+        res.send(result);
+      })
+
+
+
+
       //sending data of addaded class of an instructors //verifyJwt //verify Instructors
       app.post("/classes",verifyJWT,verifyInstructor,async(req,res)=>{
           const classInfo=req.body;
@@ -178,6 +188,23 @@ async function run() {
         const result=await classCollection.find(query).toArray();
         res.send(result);
       } )
+
+
+      //update status approve or deny //jwt //admin
+        app.patch("/classes/:id",verifyJWT,verifyAdmin,async(req,res)=>{
+        const data=req.body;
+        const updatedStatus=data.status;
+        const id=req.params.id;
+        const query={_id : new ObjectId(id)}
+        const updateDoc = {
+            $set: {
+                status:updatedStatus
+            }
+        };
+        const result=await classCollection.updateOne(query,updateDoc);
+        res.send(result);
+    })
+
 
 
 
