@@ -43,10 +43,10 @@ const client = new MongoClient(uri, {
 });
 async function run() {
   try {
+    
     const userCollection = client.db("playzone").collection("users");
-
     const classCollection = client.db("playzone").collection("addedClasses");
-
+    const selectedClassCollection = client.db("playzone").collection("selectedClass");
     //middlewares
     //admin verify
     const verifyAdmin = async (req, res, next) => {
@@ -210,8 +210,7 @@ async function run() {
     });
 
     //sending feedback to the to the instructors from admin //jwt //admin
-
-    app.patch("/class/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      app.patch("/class/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const feedback = req.body.feedback;
       const query = { _id: new ObjectId(id) };
@@ -259,12 +258,27 @@ async function run() {
       res.send(result);
     });
 
-    //get the approved classes from the database
+    //get the approved classes from the database //open api
     app.get('/verifiedclass',async(req,res)=>{
       const query={status:"approved"};
       const result=await classCollection.find(query).toArray();
       res.send(result);
     })
+
+    //getting all the instructor  //open api
+    app.get('/instructors',async(req,res)=>{
+      const query={role:"instructor"};
+      const result=await userCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    //sending data of selected class by student //jwt //verifyStudent
+    app.post("/selectedClass", verifyJWT, verifyStudent, async (req, res) => {
+      const selectedClassInfo = req.body;
+      const result = await selectedClassCollection.insertOne(selectedClassInfo);
+      res.send(result);
+    });
+
 
 
     console.log(
