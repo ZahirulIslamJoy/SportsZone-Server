@@ -352,6 +352,18 @@ async function run() {
       res.send({ paymentResult,selectedClassResult, modifiedClassResult });
     });
 
+    //Enrolled class of a specific user //jwt //verifyAdmin
+    app.get(
+      "/payment/:email",verifyJWT,verifyStudent,async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email };
+        const result = await paymentCollection.find(query).toArray();
+        res.send(result);
+      }
+    );
+
+
+
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
