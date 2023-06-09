@@ -288,6 +288,16 @@ async function run() {
       }
     );
 
+    //delete a user specific selected class //jwt //verifyStudent
+    app.delete("/selectedClass/:id",verifyJWT,verifyStudent, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await selectedClassCollection.deleteOne(query);
+      res.send(result);
+    }
+  );
+
+
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
