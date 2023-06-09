@@ -5,6 +5,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 const cors = require("cors");
 var jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STRIPE_KEY);
 
 app.use(cors());
 app.use(express.json());
@@ -43,10 +44,12 @@ const client = new MongoClient(uri, {
 });
 async function run() {
   try {
-    
     const userCollection = client.db("playzone").collection("users");
     const classCollection = client.db("playzone").collection("addedClasses");
-    const selectedClassCollection = client.db("playzone").collection("selectedClass");
+    const selectedClassCollection = client
+      .db("playzone")
+      .collection("selectedClass");
+      const paymentCollection = client.db("playzone").collection("payments");
     //middlewares
     //admin verify
     const verifyAdmin = async (req, res, next) => {
@@ -210,7 +213,7 @@ async function run() {
     });
 
     //sending feedback to the to the instructors from admin //jwt //admin
-      app.patch("/class/:id", verifyJWT, verifyAdmin, async (req, res) => {
+    app.patch("/class/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const feedback = req.body.feedback;
       const query = { _id: new ObjectId(id) };
@@ -225,52 +228,57 @@ async function run() {
 
     //update class data by instructor //jwt //verifyinstructor
 
-    app.patch("/updateclass/:id", verifyJWT, verifyInstructor, async (req, res) => {
-      const id = req.params.id;
-      const data = req.body;
-      const query = { _id: new ObjectId(id) };
-      const specificIdData=await classCollection.findOne(query);
-      const previousClassName=specificIdData.className;
-      const previousSeats=specificIdData. seats;
-      const previousPrice=specificIdData.price;
+    app.patch(
+      "/updateclass/:id",
+      verifyJWT,
+      verifyInstructor,
+      async (req, res) => {
+        const id = req.params.id;
+        const data = req.body;
+        const query = { _id: new ObjectId(id) };
+        const specificIdData = await classCollection.findOne(query);
+        const previousClassName = specificIdData.className;
+        const previousSeats = specificIdData.seats;
+        const previousPrice = specificIdData.price;
 
-      let className=data.className;
-      let price=data.price;
-      let seats =data.seats;
-      if(className==""){
-        className=previousClassName;
-      }
+        let className = data.className;
+        let price = data.price;
+        let seats = data.seats;
+        if (className == "") {
+          className = previousClassName;
+        }
 
-      if(price == ""){
-        price=previousPrice;
+        if (price == "") {
+          price = previousPrice;
+        }
+        if (seats == "") {
+          seats = previousSeats;
+        }
+        const updateDoc = {
+          $set: {
+            className: className,
+            price: price,
+            seats: seats,
+          },
+        };
+        const result = await classCollection.updateOne(query, updateDoc);
+        res.send(result);
       }
-      if(seats == ""){
-        seats=previousSeats;
-      }
-      const updateDoc = {
-        $set: {
-          className:className,
-          price:price,
-          seats:seats,
-        },
-      };
-      const result = await classCollection.updateOne(query, updateDoc);
+    );
+
+    //get the approved classes from the database //open api
+    app.get("/verifiedclass", async (req, res) => {
+      const query = { status: "approved" };
+      const result = await classCollection.find(query).toArray();
       res.send(result);
     });
 
-    //get the approved classes from the database //open api
-    app.get('/verifiedclass',async(req,res)=>{
-      const query={status:"approved"};
-      const result=await classCollection.find(query).toArray();
-      res.send(result);
-    })
-
     //getting all the instructor  //open api
-    app.get('/instructors',async(req,res)=>{
-      const query={role:"instructor"};
-      const result=await userCollection.find(query).toArray();
+    app.get("/instructors", async (req, res) => {
+      const query = { role: "instructor" };
+      const result = await userCollection.find(query).toArray();
       res.send(result);
-    })
+    });
 
     //sending data of selected class by student //jwt //verifyStudent
     app.post("/selectedClass", verifyJWT, verifyStudent, async (req, res) => {
@@ -280,7 +288,11 @@ async function run() {
     });
 
     //get selectedclass info of a specific user //jwt //verifyStudent
-    app.get("/selectedClass/:email",verifyJWT,verifyStudent, async (req, res) => {
+    app.get(
+      "/selectedClass/:email",
+      verifyJWT,
+      verifyStudent,
+      async (req, res) => {
         const email = req.params.email;
         const query = { email: email };
         const result = await selectedClassCollection.find(query).toArray();
@@ -289,15 +301,56 @@ async function run() {
     );
 
     //delete a user specific selected class //jwt //verifyStudent
-    app.delete("/selectedClass/:id",verifyJWT,verifyStudent, async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await selectedClassCollection.deleteOne(query);
-      res.send(result);
-    }
-  );
+    app.delete(
+      "/selectedClass/:id",
+      verifyJWT,
+      verifyStudent,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await selectedClassCollection.deleteOne(query);
+        res.send(result);
+      }
+    );
 
+    //stripe payment intent api //jwt //verify student
+    app.post("/create-payment-intent", verifyJWT,verifyStudent, async (req, res) => {
+      const { payAmount } = req.body;
+      const amount = parseInt(payAmount * 100);
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
 
+    // //payment //verifyJwt //verifyStudent //add payment database //delete myselected class //update seats //update enrollment
+    app.post("/payments",verifyJWT,verifyStudent, async (req, res) => {
+      const paymentInfo = req.body;
+      const id=req.body.selectedclassId;
+      const paymentResult = await paymentCollection.insertOne(paymentInfo);
+      const query={_id: new ObjectId(id)}
+      const selectedClassResult = await selectedClassCollection.deleteOne(query);
+      const classId=req.body.classId;
+      const classQuery={_id: new ObjectId(classId)}
+      const classResult=await classCollection.findOne(classQuery);
+      const seats =classResult.seats;
+      const newSeats=seats-1;
+      const enrolled=classResult.enrolled;
+      const newEnrolled=enrolled+1;
+      const updateDoc = {
+        $set: {
+          seats:newSeats,
+          enrolled:newEnrolled,
+        },
+      }
+      const modifiedClassResult = await classCollection.updateOne(classQuery, updateDoc);
+      res.send({ paymentResult,selectedClassResult, modifiedClassResult });
+    });
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
