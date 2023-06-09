@@ -279,6 +279,14 @@ async function run() {
       res.send(result);
     });
 
+    //get selectedclass info of a specific user //jwt //verifyStudent
+    app.get("/selectedClass/:email",verifyJWT,verifyStudent, async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email };
+        const result = await selectedClassCollection.find(query).toArray();
+        res.send(result);
+      }
+    );
 
 
     console.log(
