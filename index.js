@@ -259,6 +259,13 @@ async function run() {
       res.send(result);
     });
 
+    //get the approved classes from the database
+    app.get('/verifiedclass',async(req,res)=>{
+      const query={status:"approved"};
+      const result=await classCollection.find(query).toArray();
+      res.send(result);
+    })
+
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
