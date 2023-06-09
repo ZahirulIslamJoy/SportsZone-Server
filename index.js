@@ -230,11 +230,24 @@ async function run() {
       const id = req.params.id;
       const data = req.body;
       const query = { _id: new ObjectId(id) };
-      const specificIdData=await classCollection.findOne(query)
-      const className=data.className;
-      const price=data.price;
-      const seats =data.seats;
-    
+      const specificIdData=await classCollection.findOne(query);
+      const previousClassName=specificIdData.className;
+      const previousSeats=specificIdData. seats;
+      const previousPrice=specificIdData.price;
+
+      let className=data.className;
+      let price=data.price;
+      let seats =data.seats;
+      if(className==""){
+        className=previousClassName;
+      }
+
+      if(price == ""){
+        price=previousPrice;
+      }
+      if(seats == ""){
+        seats=previousSeats;
+      }
       const updateDoc = {
         $set: {
           className:className,
