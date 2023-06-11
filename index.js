@@ -92,7 +92,6 @@ async function run() {
 
     //get all of the users //jwt //admin verify //complete verify
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
-      console.log("come");
       const email = req.query.email;
       const jwtEmail = req.decoded.email;
       if (!email) {
@@ -281,9 +280,10 @@ async function run() {
     });
 
     //sending data of selected class by student //jwt //verifyStudent
-    app.post("/selectedClass", verifyJWT, verifyStudent, async (req, res) => {
+    app.post("/selectedClass", verifyJWT,verifyStudent, async (req, res) => {
       const selectedClassInfo = req.body;
       const result = await selectedClassCollection.insertOne(selectedClassInfo);
+      //testing
       res.send(result);
     });
 
@@ -352,15 +352,31 @@ async function run() {
       res.send({ paymentResult,selectedClassResult, modifiedClassResult });
     });
 
-    //Enrolled class of a specific user //jwt //verifyAdmin
+    //Enrolled class of a specific student //jwt //verifyAdmin
     app.get(
       "/payment/:email",verifyJWT,verifyStudent,async (req, res) => {
         const email = req.params.email;
         const query = { email: email };
-        const result = await paymentCollection.find(query).toArray();
+        const result = await paymentCollection.find(query).sort({ date: -1 }).toArray();
         res.send(result);
       }
     );
+
+    //popular class based on enrollment //open api
+      app.get("/popularclass",async(req,res)=>{
+        const query={
+          status:"approved"
+        }
+        const result = await classCollection.find(query).sort({ 
+          enrolled: -1 }).limit(6).toArray();
+          res.send(result);
+      })
+
+
+      //
+
+
+
 
 
 
