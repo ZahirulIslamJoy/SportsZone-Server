@@ -243,7 +243,6 @@ async function run() {
     });
 
     //update class data by instructor //jwt //verifyinstructor
-
     app.patch(
       "/updateclass/:id",
       verifyJWT,
@@ -391,11 +390,6 @@ async function run() {
 
 
       //
-
-
-
-
-
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
